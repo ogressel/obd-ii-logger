@@ -4,6 +4,11 @@
 
 import csv
 
+# --- integer from hexadecimal string
+
+_hex = lambda val: 0 if val=="" else int( "0x%s" % val, 16 )
+_float = lambda val: 0. if val=="" else float(val)
+
 # --- OBD-II sensor class (matching TorquePro-style CSV file)
 
 class obd_sensors:
@@ -24,14 +29,14 @@ class obd_sensors:
         self.name = (row[0])[1:]
         self.nm = row[1]
 
-        self.pid = 0 if row[2]=="" else int("0x%s" % row[2],16)
+        self.pid = _hex(row[2])
         self.eqn = row[3]
 
-        self.minv = 0. if row[4]=="" else float(row[4])
-        self.maxv = 0. if row[5]=="" else float(row[5])
+        self.minv = _float(row[4])
+        self.maxv = _float(row[5])
 
         self.unit = row[6]
-        self.hdr = 0 if row[7]=="" else int("0x%s" % row[7],16)
+        self.hdr = _hex(row[7])
 
     # --- print object values
 
