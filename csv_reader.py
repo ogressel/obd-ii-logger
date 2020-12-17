@@ -3,11 +3,13 @@
 #
 
 import csv
+import numpy as np
 
 # --- utility functions
 
 _hex = lambda val: 0 if val=="" else int( "0x%s" % val, 16 )
 _float = lambda val: 0. if val=="" else float(val)
+Signed = lambda val: np.int16(val)
 
 # --- OBD-II sensor class (matching TorquePro-style CSV file)
 
