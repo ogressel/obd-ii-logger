@@ -47,6 +47,30 @@ class obd_sensors:
             % ( self.name, self.nm, hex(self.pid), self.eqn,
                 self.minv, self.maxv, self.unit, hex(self.hdr) )
 
+# --- callback function for decoding messages
+
+def decode_pid(messages):
+
+    """ generic decoder function for OBD-II messages """
+
+    data = messages[0].data # only operate on a single message
+    pid = (data[0]*256+data[1])*256+data[2] # assume 3-digit mode+PID
+
+    # find corresponding expression
+    for id,sensor in enumerate(my_obd_sensors):
+        if pid == sensor.pid: break
+
+    if pid != sensor.pid:
+        raise SystemExit('error: no valid PID found.')
+
+    A = data[3] if "A" in sensor.eqn else 0
+    B = data[4] if "B" in sensor.eqn else 0
+
+    # FIXME: create Unit object
+
+    return eval( sensor.eqn )
+
+
 # --- import the CSV file
 
 my_obd_sensors = []
@@ -54,9 +78,18 @@ my_obd_sensors = []
 with open('Bolt.csv', 'r') as f:
 
     for num,line in enumerate(f):
+
         if (num>0):
             sensor = obd_sensors( (line.strip()).split(",") )
-            if (sensor.name!=""):  # skip empty lines
+
+            if not ( "[" in sensor.eqn     # skip compound sensors
+                     or sensor.name=="" ): # skip empty sensors
                 my_obd_sensors.append(sensor)
 
-print(my_obd_sensors)
+#print(my_obd_sensors)
+
+class myFakeMessage:
+    data = [0x22,0x28,0xfb,0xab,0xcd]
+
+msg=[]; msg.append(myFakeMessage)
+print( decode_pid( msg ) )
