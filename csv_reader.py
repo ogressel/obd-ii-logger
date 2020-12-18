@@ -2,7 +2,6 @@
 #
 #
 
-import csv
 import numpy as np
 
 # --- utility functions
@@ -56,13 +55,10 @@ my_obd_sensors = []
 
 with open('Bolt.csv', 'r') as f:
 
-    reader = csv.reader(f)
-    next(reader, None)  # skip the header
-
-    for row in reader:
-        sensor = obd_sensors(row[:])
-
-        if(sensor.name!=""):  # skip empty lines
-            my_obd_sensors.append(sensor)
+    for num,line in enumerate(f):
+        if (num>0):
+            sensor = obd_sensors( (line.strip()).split(",") )
+            if (sensor.name!=""):  # skip empty lines
+                my_obd_sensors.append(sensor)
 
 print(my_obd_sensors)
