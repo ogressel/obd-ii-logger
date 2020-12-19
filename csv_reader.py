@@ -2,6 +2,9 @@
 #
 #
 
+from obd import OBDCommand
+from obd.protocols import ECU
+
 # --- utility functions
 
 _hex = lambda val: 0 if val=="" else int( "0x%s" % val, 16 )
@@ -20,6 +23,7 @@ class obd_sensors:
     maxv = 0        # biggest possible value
     unit = ""       # physical unit descriptor
     hdr = 0         # OBD-II header
+    cmd = 0         # query command object
 
     # --- constructor
 
@@ -36,6 +40,21 @@ class obd_sensors:
 
         self.unit = value[6]
         self.hdr = _hex(value[7])
+
+        nbyte=0
+        if "A" in self.eqn: nbyte=1
+        if "B" in self.eqn: nbyte=2
+        if "C" in self.eqn: nbyte=3
+        if "D" in self.eqn: nbyte=4
+
+        self.cmd = OBDCommand( self.nm,    # name
+                               self.name,  # description
+                               self.pid,   # command
+                               nbyte,      # number of return bytes to expect
+                               decode_pid, # decoding function
+                               ECU.ALL,    # (opt) ECU filter
+                               True,       # (opt) "01" may be added for speed
+                               self.hdr )  # (opt) custom PID header
 
     # --- print object values
 
