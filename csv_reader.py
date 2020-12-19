@@ -4,6 +4,7 @@
 
 from h5py import File
 from time import time, sleep
+from datetime import datetime
 
 import obd
 from obd import OBD, OBDCommand
@@ -131,6 +132,7 @@ for pid,sensor in my_obd_sensors.items():
     connection.supported_commands.add(sensor.cmd)
     connection.watch(sensor.cmd, callback=sensor.accumulate, force=True)
 
+epoch = datetime.now()
 start_time = time()
 
 connection.start()
@@ -141,7 +143,8 @@ connection.unwatch_all()
 
 # --- write data output -------------------------------------------------------
 
-f_id = File( "sensors.h5", "w" )
+f_nm = epoch.strftime("sensor-readings-%Y.%m.%d-%H:%M:%S.h5")
+f_id = File( f_nm, "w" )
 
 for pid,sensor in my_obd_sensors.items():
     f_id.create_dataset( sensor.nm, data=sensor.tms )
