@@ -56,12 +56,8 @@ def decode_pid(messages):
     data = messages[0].data # only operate on a single message
     pid = (data[0]*256+data[1])*256+data[2] # assume 3-digit mode+PID
 
-    # find corresponding expression
-    for id,sensor in enumerate(my_obd_sensors):
-        if pid == sensor.pid: break
-
-    if pid != sensor.pid:
-        raise SystemExit('error: no valid PID found.')
+    # lookup expression
+    sensor = my_obd_sensors[pid]
 
     A = data[3] if "A" in sensor.eqn else 0
     B = data[4] if "B" in sensor.eqn else 0
@@ -73,7 +69,7 @@ def decode_pid(messages):
 
 # --- import the CSV file
 
-my_obd_sensors = []
+my_obd_sensors = {}
 
 with open('Bolt.csv', 'r') as f:
 
@@ -84,7 +80,7 @@ with open('Bolt.csv', 'r') as f:
 
             if not ( "[" in sensor.eqn     # skip compound sensors
                      or sensor.name=="" ): # skip empty sensors
-                my_obd_sensors.append(sensor)
+                my_obd_sensors[sensor.pid] = sensor
 
 #print(my_obd_sensors)
 
