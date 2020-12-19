@@ -103,7 +103,8 @@ with open('Bolt.csv', 'r') as f:
             sensor = obd_sensors( (line.strip()).split(",") )
 
             if not ( "[" in sensor.eqn     # skip compound sensors
-                     or sensor.name=="" ): # skip empty sensors
+                     or sensor.pid>>8==1   # skip standard PIDs
+                     or sensor.name=="" ): # skip empty entries
 
                 my_obd_sensors[sensor.pid] = sensor
 
