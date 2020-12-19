@@ -5,13 +5,15 @@
 from obd import OBDCommand
 from obd.protocols import ECU
 
-# --- utility functions
+
+# --- utility functions -------------------------------------------------------
 
 _hex = lambda val: 0 if val=="" else int( "0x%s" % val, 16 )
 _float = lambda val: 0. if val=="" else float(val)
 Signed = lambda val: (val & 0xffff) - (1<<16) if val >= (1<<15) else val
 
-# --- OBD-II sensor class (matching TorquePro-style CSV file)
+
+# --- OBD-II sensor class (matching TorquePro-style CSV file) -----------------
 
 class obd_sensors:
 
@@ -66,7 +68,8 @@ class obd_sensors:
             % ( self.name, self.nm, hex(self.pid), self.eqn,
                 self.minv, self.maxv, self.unit, hex(self.hdr) )
 
-# --- callback function for decoding messages
+
+# --- callback function for decoding messages ---------------------------------
 
 def decode_pid(messages):
 
@@ -86,7 +89,7 @@ def decode_pid(messages):
     return eval( sensor.eqn )
 
 
-# --- import the CSV file
+# --- import the CSV file -----------------------------------------------------
 
 my_obd_sensors = {}
 
@@ -99,7 +102,11 @@ with open('Bolt.csv', 'r') as f:
 
             if not ( "[" in sensor.eqn     # skip compound sensors
                      or sensor.name=="" ): # skip empty sensors
+
                 my_obd_sensors[sensor.pid] = sensor
+
+
+# --- main event loop ---------------------------------------------------------
 
 #print(my_obd_sensors)
 
@@ -108,3 +115,5 @@ class myFakeMessage:
 
 msg=[]; msg.append(myFakeMessage)
 print( decode_pid( msg ) )
+
+# -----------------------------------------------------------------------------
