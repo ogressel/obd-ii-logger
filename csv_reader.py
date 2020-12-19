@@ -83,6 +83,8 @@ def decode_pid(messages):
 
     A = data[3] if "A" in sensor.eqn else 0
     B = data[4] if "B" in sensor.eqn else 0
+    C = data[5] if "C" in sensor.eqn else 0
+    D = data[6] if "D" in sensor.eqn else 0
 
     # FIXME: create Unit object
 
