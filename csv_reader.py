@@ -2,7 +2,11 @@
 #
 #
 
-from obd import OBDCommand
+from h5py import File
+from time import time, sleep
+
+import obd
+from obd import OBD, OBDCommand
 from obd.protocols import ECU
 
 
@@ -25,14 +29,16 @@ class obd_sensors:
     maxv = 0        # biggest possible value
     unit = ""       # physical unit descriptor
     hdr = 0         # OBD-II header
+    tms = 0         # time series of data
     cmd = 0         # query command object
+
 
     # --- constructor
 
     def __init__(self, value = []):
 
-        self.name = (value[0])[1:] # omit leading character
-        self.nm = value[1]
+        self.name = value[0]
+        self.nm = value[1].replace(' ', '_')
 
         self.pid = _hex(value[2])
         self.eqn = value[3]
@@ -42,6 +48,7 @@ class obd_sensors:
 
         self.unit = value[6]
         self.hdr = _hex(value[7])
+        self.tms = []
 
         nbyte=0
         if "A" in self.eqn: nbyte=1
@@ -51,12 +58,12 @@ class obd_sensors:
 
         self.cmd = OBDCommand( self.nm,    # name
                                self.name,  # description
-                               self.pid,   # command
+                           hex(self.pid),  # command
                                nbyte,      # number of return bytes to expect
                                decode_pid, # decoding function
                                ECU.ALL,    # (opt) ECU filter
                                True,       # (opt) "01" may be added for speed
-                               self.hdr )  # (opt) custom PID header
+                           hex(self.hdr) ) # (opt) custom PID header
 
     # --- print object values
 
@@ -67,6 +74,12 @@ class obd_sensors:
             " minv='%g', maxv='%g', unit='%s', hdr='%s'\n" \
             % ( self.name, self.nm, hex(self.pid), self.eqn,
                 self.minv, self.maxv, self.unit, hex(self.hdr) )
+
+    # --- callback method for data accumulationa
+
+    def accumulate(self,result):
+
+        self.tms.append( [ time()-start_time, result.value ] )
 
 
 # --- callback function for decoding messages ---------------------------------
@@ -91,6 +104,7 @@ def decode_pid(messages):
     return eval( sensor.eqn )
 
 
+
 # --- import the CSV file -----------------------------------------------------
 
 my_obd_sensors = {}
@@ -111,12 +125,27 @@ with open('Bolt.csv', 'r') as f:
 
 # --- main event loop ---------------------------------------------------------
 
-#print(my_obd_sensors)
+connection = obd.Async()
 
-class myFakeMessage:
-    data = [0x22,0x28,0xfb,0xab,0xcd]
+for pid,sensor in my_obd_sensors.items():
+    connection.supported_commands.add(sensor.cmd)
+    connection.watch(sensor.cmd, callback=sensor.accumulate, force=True)
 
-msg=[]; msg.append(myFakeMessage)
-print( decode_pid( msg ) )
+start_time = time()
+
+connection.start()
+sleep(15)
+connection.stop()
+
+connection.unwatch_all()
+
+# --- write data output -------------------------------------------------------
+
+f_id = File( "sensors.h5", "w" )
+
+for pid,sensor in my_obd_sensors.items():
+    f_id.create_dataset( sensor.nm, data=sensor.tms )
+
+f_id.close()
 
 # -----------------------------------------------------------------------------
