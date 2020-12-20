@@ -31,6 +31,7 @@ class obd_sensors:
     unit = ""       # physical unit descriptor
     hdr = 0         # OBD-II header
     tms = 0         # time series of data
+    nbt = 0         # number of bytes returned
     cmd = 0         # query command object
 
 
@@ -51,16 +52,16 @@ class obd_sensors:
         self.hdr = _hex(value[7])
         self.tms = []
 
-        nbyte=0
-        if "A" in self.eqn: nbyte=1
-        if "B" in self.eqn: nbyte=2
-        if "C" in self.eqn: nbyte=3
-        if "D" in self.eqn: nbyte=4
+        self.nbt=0
+        if "A" in self.eqn: self.nbt=1
+        if "B" in self.eqn: self.nbt=2
+        if "C" in self.eqn: self.nbt=3
+        if "D" in self.eqn: self.nbt=4
 
         self.cmd = OBDCommand( self.nm,    # name
                                self.name,  # description
                            hex(self.pid),  # command
-                               nbyte,      # number of return bytes to expect
+                               self.nbt,   # number of return bytes to expect
                                decode_pid, # decoding function
                                ECU.ALL,    # (opt) ECU filter
                                True,       # (opt) "01" may be added for speed
@@ -90,20 +91,26 @@ def decode_pid(messages):
     """ generic decoder function for OBD-II messages """
 
     data = messages[0].data # only operate on a single message
-    pid = (data[0]*256+data[1])*256+data[2] # assume 3-digit mode+PID
+
+    ib = 0
+    nbytes_msg = len(data)
+
+    pid = data[0]*256 + data[1]; ib+=2
+
+    if(nbytes_msg>2):
+        pid = pid*256 + data[2]; ib+=1
 
     # lookup expression
     sensor = my_obd_sensors[pid]
 
-    A = data[3] if "A" in sensor.eqn else 0
-    B = data[4] if "B" in sensor.eqn else 0
-    C = data[5] if "C" in sensor.eqn else 0
-    D = data[6] if "D" in sensor.eqn else 0
+    A = data[ib+0] if "A" in sensor.eqn and ib+0 < nbytes_msg else 0
+    B = data[ib+1] if "B" in sensor.eqn and ib+1 < nbytes_msg else 0
+    C = data[ib+2] if "C" in sensor.eqn and ib+2 < nbytes_msg else 0
+    D = data[ib+3] if "D" in sensor.eqn and ib+3 < nbytes_msg else 0
 
     # FIXME: create Unit object
 
     return eval( sensor.eqn )
-
 
 
 # --- import the CSV file -----------------------------------------------------
@@ -128,7 +135,13 @@ with open('Bolt.csv', 'r') as f:
 
 connection = obd.Async()
 
+connection.unwatch_all()
+
 for pid,sensor in my_obd_sensors.items():
+
+    print( "adding PID=%d, with command '%s', eqn='%s'" %
+           (sensor.pid, sensor.cmd, sensor.eqn) )
+
     connection.supported_commands.add(sensor.cmd)
     connection.watch(sensor.cmd, callback=sensor.accumulate, force=True)
 
@@ -136,7 +149,11 @@ epoch = datetime.now()
 start_time = time()
 
 connection.start()
-sleep(15)
+
+for it in range(30):
+    print('.', end='', flush=True); sleep(0.5)
+print()
+
 connection.stop()
 
 connection.unwatch_all()
