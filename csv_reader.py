@@ -92,16 +92,29 @@ def decode_pid(messages):
 
     data = messages[0].data # only operate on a single message
 
-    ib = 0
+    pid = ib = 0
     nbytes_msg = len(data)
 
-    pid = data[0]*256 + data[1]; ib+=2
+    print("DEBUG:: decoding message '%s' of length %d" % (data, nbytes_msg))
+
+    if(nbytes_msg>0):
+        pid = data[0]; ib+=1
+
+    if(nbytes_msg>1):
+        pid = pid*256 + data[ib]; ib+=1
 
     if(nbytes_msg>2):
         pid = pid*256 + data[2]; ib+=1
 
+    print("DEBUG:: assuming pid='%s'" % hex(pid))
+
     # lookup expression
-    sensor = my_obd_sensors[pid]
+    try:
+        sensor = my_obd_sensors[pid]
+
+    except KeyError:
+        print("WARN:: failed to lookup pid='%s'" % hex(pid))
+        return -1
 
     A = data[ib+0] if "A" in sensor.eqn and ib+0 < nbytes_msg else 0
     B = data[ib+1] if "B" in sensor.eqn and ib+1 < nbytes_msg else 0
@@ -139,7 +152,7 @@ connection.unwatch_all()
 
 for pid,sensor in my_obd_sensors.items():
 
-    print( "adding PID=%d, with command '%s', eqn='%s'" %
+    print( "INFO:: adding PID=%d, with command '%s', eqn='%s'" %
            (sensor.pid, sensor.cmd, sensor.eqn) )
 
     connection.supported_commands.add(sensor.cmd)
@@ -151,7 +164,7 @@ start_time = time()
 connection.start()
 
 for it in range(30):
-    print('.', end='', flush=True); sleep(0.5)
+    print('.'); sleep(0.5); #, end='', flush=True); sleep(0.5)
 print()
 
 connection.stop()
