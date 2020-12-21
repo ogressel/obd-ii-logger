@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 #
 
@@ -162,7 +162,7 @@ start_time = time()
 connection.start()
 
 for it in range(30):
-    print('.'); sleep(0.5); #, end='', flush=True); sleep(0.5)
+    print('.', end='', flush=True); sleep(0.5)
 print()
 
 connection.stop()
