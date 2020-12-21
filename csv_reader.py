@@ -13,10 +13,8 @@ from obd.protocols import ECU
 
 # --- utility functions -------------------------------------------------------
 
-_hex = lambda val: 0 if val=="" else int( "0x%s" % val, 16 )
 _float = lambda val: 0. if val=="" else float(val)
 Signed = lambda val: (val & 0xffff) - (1<<16) if val >= (1<<15) else val
-
 
 # --- OBD-II sensor class (matching TorquePro-style CSV file) -----------------
 
@@ -42,14 +40,14 @@ class obd_sensors:
         self.name = value[0]
         self.nm = value[1].replace(' ', '_')
 
-        self.pid = _hex(value[2])
+        self.pid = bytes(value[2],"ascii")
         self.eqn = value[3]
 
         self.minv = _float(value[4])
         self.maxv = _float(value[5])
 
         self.unit = value[6]
-        self.hdr = _hex(value[7])
+        self.hdr = bytes(value[7],"ascii")
         self.tms = []
 
         self.nbt=0
@@ -60,12 +58,12 @@ class obd_sensors:
 
         self.cmd = OBDCommand( self.nm,    # name
                                self.name,  # description
-                           hex(self.pid),  # command
+                               self.pid,   # command
                                self.nbt,   # number of return bytes to expect
                                decode_pid, # decoding function
                                ECU.ALL,    # (opt) ECU filter
                                True,       # (opt) "01" may be added for speed
-                           hex(self.hdr) ) # (opt) custom PID header
+                               self.hdr )  # (opt) custom PID header
 
     # --- print object values
 
@@ -138,7 +136,7 @@ with open('Bolt.csv', 'r') as f:
             sensor = obd_sensors( (line.strip()).split(",") )
 
             if not ( "[" in sensor.eqn     # skip compound sensors
-                     or sensor.pid>>8==1   # skip standard PIDs
+                     or len(sensor.pid)==4 # skip standard PIDs (for now)
                      or sensor.name=="" ): # skip empty entries
 
                 my_obd_sensors[sensor.pid] = sensor
@@ -152,11 +150,11 @@ connection.unwatch_all()
 
 for pid,sensor in my_obd_sensors.items():
 
-    print( "INFO:: adding PID=%d, with command '%s', eqn='%s'" %
+    print( "INFO:: adding PID=%s with command '%s', eqn='%s'" %
            (sensor.pid, sensor.cmd, sensor.eqn) )
 
     connection.supported_commands.add(sensor.cmd)
-    connection.watch(sensor.cmd, callback=sensor.accumulate, force=True)
+    connection.watch(sensor.cmd, callback=sensor.accumulate)
 
 epoch = datetime.now()
 start_time = time()
