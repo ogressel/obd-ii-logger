@@ -32,7 +32,6 @@ class obd_sensors:
     nbt = 0         # number of bytes returned
     cmd = 0         # query command object
 
-
     # --- constructor
 
     def __init__(self, value = []):
@@ -40,14 +39,14 @@ class obd_sensors:
         self.name = value[0]
         self.nm = value[1].replace(' ', '_')
 
-        self.pid = bytes(value[2],"ascii")
+        self.pid = bytes(value[2],encoding='ascii')
         self.eqn = value[3]
 
         self.minv = _float(value[4])
         self.maxv = _float(value[5])
 
         self.unit = value[6]
-        self.hdr = bytes(value[7],"ascii")
+        self.hdr = bytes(value[7],encoding='ascii')
         self.tms = []
 
         self.nbt=0
@@ -56,14 +55,14 @@ class obd_sensors:
         if "C" in self.eqn: self.nbt=3
         if "D" in self.eqn: self.nbt=4
 
-        self.cmd = OBDCommand( self.nm,    # name
-                               self.name,  # description
-                               self.pid,   # command
-                               self.nbt,   # number of return bytes to expect
-                               decode_pid, # decoding function
-                               ECU.ALL,    # (opt) ECU filter
-                               True,       # (opt) "01" may be added for speed
-                               self.hdr )  # (opt) custom PID header
+        self.cmd = OBDCommand( self.nm,     # name
+                               self.name,   # description
+                               self.pid,    # command
+                               0,    #### number of return bytes to expect
+                               decode_pid,  # decoding function
+                               ECU.UNKNOWN, # (opt) ECU filter
+                               True,        # (opt) "01" may be added for speed
+                               self.hdr )   # (opt) custom PID header
 
     # --- print object values
 
@@ -88,36 +87,34 @@ def decode_pid(messages):
 
     """ generic decoder function for OBD-II messages """
 
-    data = messages[0].data # only operate on a single message
+    #for i,msg in enumerate(messages):
+    #    for j,frm in enumerate(msg.frames):
+    #        print( "DEBUG:: raw message[%d].frame[%d].raw=%s"
+    #              % ( i,j, frm.raw ) )
 
-    pid = ib = 0
-    nbytes_msg = len(data)
+    #for i,msg in enumerate(messages):
+    #    print( "DEBUG:: message[%d]=%s" % (i, msg.data) )
 
-    print("DEBUG:: decoding message '%s' of length %d" % (data, nbytes_msg))
+    data = messages[0].frames[0].raw # operate on a single message/frame
 
-    if(nbytes_msg>0):
-        pid = data[0]; ib+=1
+    pid = bytearray(data[5:11],encoding='ascii');
+    pid[0] -= 4 # remove acknowledgement flag
+    pid = bytes(pid) # make hashable
 
-    if(nbytes_msg>1):
-        pid = pid*256 + data[ib]; ib+=1
-
-    if(nbytes_msg>2):
-        pid = pid*256 + data[2]; ib+=1
-
-    print("DEBUG:: assuming pid='%s'" % hex(pid))
+    print("DEBUG:: decoding message %s, assuming pid=%s" % (data, pid))
 
     # lookup expression
     try:
         sensor = my_obd_sensors[pid]
 
     except KeyError:
-        print("WARN:: failed to lookup pid='%s'" % hex(pid))
+        print("WARN:: failed to lookup pid=%s" % pid)
         return -1
 
-    A = data[ib+0] if "A" in sensor.eqn and ib+0 < nbytes_msg else 0
-    B = data[ib+1] if "B" in sensor.eqn and ib+1 < nbytes_msg else 0
-    C = data[ib+2] if "C" in sensor.eqn and ib+2 < nbytes_msg else 0
-    D = data[ib+3] if "D" in sensor.eqn and ib+3 < nbytes_msg else 0
+    A = int(data[11:13],16) if "A" in sensor.eqn else 0
+    B = int(data[13:15],16) if "B" in sensor.eqn else 0
+
+    print("DEBUG:: fetching values A=%s, B=%s" % (A,B))
 
     # FIXME: create Unit object
 
@@ -135,18 +132,46 @@ with open('Bolt.csv', 'r') as f:
         if (num>0):
             sensor = obd_sensors( (line.strip()).split(",") )
 
-            if not ( "[" in sensor.eqn     # skip compound sensors
-                     or len(sensor.pid)==4 # skip standard PIDs (for now)
-                     or sensor.name=="" ): # skip empty entries
+            if "[" in sensor.eqn:
+                print("WARN:: skipping compound expression '%s'" % sensor.eqn)
+                continue
 
-                my_obd_sensors[sensor.pid] = sensor
+            if len(sensor.pid)==4:
+                print("WARN:: skipping standard PID %s" % sensor.pid)
+                continue
 
+            if sensor.name=="":
+                print("WARN:: skipping empty entry")
+                continue
+
+            if sensor.pid in my_obd_sensors:
+                print("WARN:: skipping duplicate PID %s" % sensor.pid)
+                continue
+
+            my_obd_sensors[sensor.pid] = sensor
+
+#class myFakeFrame():
+#    raw = bytes(b'7EC0462436B02B2')
+
+#class myFakeMessage():
+#    frames = [ myFakeFrame() ]
+
+#msg = [myFakeMessage()]
+#print(decode_pid(msg))
+#exit(-1)
+
+# ####### FIXME: add ELM_VOLTAGE ############
+#
+#elm_v = OBDCommand("ELM_VOLTAGE", "Voltage detected by OBD-II adapter",
+#                   b"ATRV", 0, decode_pid, ECU.UNKNOWN, False)
 
 # --- main event loop ---------------------------------------------------------
 
 connection = obd.Async()
 
 connection.unwatch_all()
+
+#connection.watch(elm_v, callback=sensor.accumulate)
 
 for pid,sensor in my_obd_sensors.items():
 
