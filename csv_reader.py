@@ -186,7 +186,7 @@ start_time = time()
 
 connection.start()
 
-for it in range(30):
+for it in range(120):
     print('.', end='', flush=True); sleep(0.5)
 print()
 
@@ -194,13 +194,14 @@ connection.stop()
 
 connection.unwatch_all()
 
+
 # --- write data output -------------------------------------------------------
 
 f_nm = epoch.strftime("sensor-readings-%Y.%m.%d-%H:%M:%S.h5")
 f_id = File( f_nm, "w" )
 
 for pid,sensor in my_obd_sensors.items():
-    f_id.create_dataset( sensor.nm, data=sensor.tms )
+    f_id.create_dataset( sensor.nm, data=sensor.tms, dtype='f8' )
 
 f_id.close()
 
