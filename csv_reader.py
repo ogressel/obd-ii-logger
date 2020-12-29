@@ -14,7 +14,7 @@ from obd.protocols import ECU
 # --- utility functions -------------------------------------------------------
 
 _float = lambda val: 0. if val=="" else float(val)
-Signed = lambda val: (val & 0xffff) - (1<<16) if val >= (1<<15) else val
+Signed = lambda val: (val & 0xff) - (1<<8) if val >= (1<<7) else val
 
 # --- OBD-II sensor class (matching TorquePro-style CSV file) -----------------
 
@@ -150,15 +150,6 @@ with open('Bolt.csv', 'r') as f:
 
             my_obd_sensors[sensor.pid] = sensor
 
-#class myFakeFrame():
-#    raw = bytes(b'7EC0462436B02B2')
-
-#class myFakeMessage():
-#    frames = [ myFakeFrame() ]
-
-#msg = [myFakeMessage()]
-#print(decode_pid(msg))
-#exit(-1)
 
 # ####### FIXME: add ELM_VOLTAGE ############
 #
@@ -201,6 +192,9 @@ f_nm = epoch.strftime("sensor-readings-%Y.%m.%d-%H:%M:%S.h5")
 f_id = File( f_nm, "w" )
 
 for pid,sensor in my_obd_sensors.items():
+    print("DEBUG:: saving time series '%s' with %d elements of type %s" % (sensor.nm, len(sensor.tms), type(sensor.tms[0])) )
+    print("DEBUG:: values are %s" % sensor.tms)
+
     f_id.create_dataset( sensor.nm, data=sensor.tms, dtype='f8' )
 
 f_id.close()
