@@ -101,11 +101,12 @@ def decode_pid(messages):
     pid[0] -= 4 # remove acknowledgement flag
     pid = bytes(pid) # make hashable
 
-    print("DEBUG:: decoding message %s, assuming pid=%s" % (data, pid))
+    print("DEBUG:: decoding message '%s' of type %s, assuming pid=%s" % (data,type(data), pid))
 
     # lookup expression
     try:
         sensor = my_obd_sensors[pid]
+        print("DEBUG:: found PID %s ('%s') with eqn='%s'" % (sensor.pid,sensor.nm,sensor.eqn))
 
     except KeyError:
         print("WARN:: failed to lookup pid=%s" % pid)
@@ -118,7 +119,10 @@ def decode_pid(messages):
 
     # FIXME: create Unit object
 
-    return eval( sensor.eqn )
+    result = float( eval( sensor.eqn ) )
+    print("DEBUG:: evaluated %s = %g" % (sensor.eqn, result))
+
+    return result
 
 
 # --- import the CSV file -----------------------------------------------------
@@ -192,10 +196,11 @@ f_nm = epoch.strftime("sensor-readings-%Y.%m.%d-%H:%M:%S.h5")
 f_id = File( f_nm, "w" )
 
 for pid,sensor in my_obd_sensors.items():
-    print("DEBUG:: saving time series '%s' with %d elements of type %s" % (sensor.nm, len(sensor.tms), type(sensor.tms[0])) )
+    print("DEBUG:: saving time series '%s' with %d elements" % (sensor.nm, len(sensor.tms)))
     print("DEBUG:: values are %s" % sensor.tms)
 
-    f_id.create_dataset( sensor.nm, data=sensor.tms, dtype='f8' )
+    if not any( val==None for (_,val) in sensor.tms ):
+        f_id.create_dataset( sensor.nm, data=sensor.tms, dtype='f8' )
 
 f_id.close()
 
