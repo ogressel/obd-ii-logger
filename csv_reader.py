@@ -58,7 +58,7 @@ class obd_sensors:
         self.cmd = OBDCommand( self.nm,     # name
                                self.name,   # description
                                self.pid,    # command
-                               0,    #### number of return bytes to expect
+                               0,           # number of return bytes to expect
                                decode_pid,  # decoding function
                                ECU.UNKNOWN, # (opt) ECU filter
                                True,        # (opt) "01" may be added for speed
@@ -87,26 +87,20 @@ def decode_pid(messages):
 
     """ generic decoder function for OBD-II messages """
 
-    #for i,msg in enumerate(messages):
-    #    for j,frm in enumerate(msg.frames):
-    #        print( "DEBUG:: raw message[%d].frame[%d].raw=%s"
-    #              % ( i,j, frm.raw ) )
-
-    #for i,msg in enumerate(messages):
-    #    print( "DEBUG:: message[%d]=%s" % (i, msg.data) )
-
     data = messages[0].frames[0].raw # operate on a single message/frame
 
     pid = bytearray(data[5:11],encoding='ascii');
-    pid[0] -= 4 # remove acknowledgement flag
-    pid = bytes(pid) # make hashable
+    pid[0] -= 4       # remove acknowledgement flag
+    pid = bytes(pid)  # make hashable
 
-    print("DEBUG:: decoding message '%s' of type %s, assuming pid=%s" % (data,type(data), pid))
+    print("DEBUG:: decoding message '%s' of type %s, assuming pid=%s"
+          % (data,type(data), pid))
 
     # lookup expression
     try:
         sensor = my_obd_sensors[pid]
-        print("DEBUG:: found PID %s ('%s') with eqn='%s'" % (sensor.pid,sensor.nm,sensor.eqn))
+        print("DEBUG:: found PID %s ('%s') with eqn='%s'"
+              % (sensor.pid,sensor.nm,sensor.eqn))
 
     except KeyError:
         print("WARN:: failed to lookup pid=%s" % pid)
@@ -116,8 +110,6 @@ def decode_pid(messages):
     B = int(data[13:15],16) if "B" in sensor.eqn else 0
 
     print("DEBUG:: fetching values A=%s, B=%s" % (A,B))
-
-    # FIXME: create Unit object
 
     result = float( eval( sensor.eqn ) )
     print("DEBUG:: evaluated %s = %g" % (sensor.eqn, result))
@@ -155,18 +147,11 @@ with open('Bolt.csv', 'r') as f:
             my_obd_sensors[sensor.pid] = sensor
 
 
-# ####### FIXME: add ELM_VOLTAGE ############
-#
-#elm_v = OBDCommand("ELM_VOLTAGE", "Voltage detected by OBD-II adapter",
-#                   b"ATRV", 0, decode_pid, ECU.UNKNOWN, False)
-
 # --- main event loop ---------------------------------------------------------
 
 connection = obd.Async()
 
 connection.unwatch_all()
-
-#connection.watch(elm_v, callback=sensor.accumulate)
 
 for pid,sensor in my_obd_sensors.items():
 
@@ -196,7 +181,8 @@ f_nm = epoch.strftime("sensor-readings-%Y.%m.%d-%H:%M:%S.h5")
 f_id = File( f_nm, "w" )
 
 for pid,sensor in my_obd_sensors.items():
-    print("DEBUG:: saving time series '%s' with %d elements" % (sensor.nm, len(sensor.tms)))
+    print("DEBUG:: saving time series '%s' with %d elements"
+          % (sensor.nm, len(sensor.tms)))
     print("DEBUG:: values are %s" % sensor.tms)
 
     if not any( val==None for (_,val) in sensor.tms ):
