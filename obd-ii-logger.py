@@ -23,16 +23,13 @@ import sys
 from h5py import File
 
 from time import time, sleep
-from datetime import datetime
-
-import numpy as np
+from datetime import datetime, timedelta
 
 import obd
 from obd import OBD, OBDCommand
 from obd.protocols import ECU
 
 from timeloop import Timeloop
-from datetime import timedelta
 
 # --- utility functions -------------------------------------------------------
 
@@ -128,12 +125,10 @@ def append_hdf5_file_every_60s():
 
         if not any( val==None for (_,val) in sensor.tms ):
 
-            tms_data = np.asarray(sensor.tms)
-
             if not sensor.nm in f_id.keys():  # create dataset
 
                 sensor.dset = f_id.create_dataset( sensor.nm,
-                                                   data=tms_data,
+                                                   data=sensor.tms,
                                                    dtype='f8',
                                                    maxshape=(None,2) )
 
@@ -141,7 +136,7 @@ def append_hdf5_file_every_60s():
 
                 new = len(sensor.tms)
                 sensor.dset.resize(sensor.dset.shape[0]+new, axis=0)
-                sensor.dset[-new:] = tms_data
+                sensor.dset[-new:] = sensor.tms
 
             # --- flush file and purge data
 
