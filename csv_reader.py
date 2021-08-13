@@ -2,7 +2,10 @@
 #
 #
 
+import sys
+
 from h5py import File
+
 from time import time, sleep
 from datetime import datetime
 
@@ -14,8 +17,6 @@ from obd.protocols import ECU
 
 from timeloop import Timeloop
 from datetime import timedelta
-
-tloop = Timeloop()
 
 # --- utility functions -------------------------------------------------------
 
@@ -90,6 +91,8 @@ class obd_sensors:
 
 
 # --- routine for appending HDF5 datasets -------------------------------------
+
+tloop = Timeloop()
 
 @tloop.job(interval=timedelta(seconds=60))
 def append_hdf5_file_every_60s():
@@ -169,9 +172,13 @@ def decode_pid(messages):
 
 # --- import the CSV file -----------------------------------------------------
 
+if( len(sys.argv)!=2 ):
+    print("INFO:: usage is '%s <pid-file.csv>'" % sys.argv[0] )
+    sys.exit(-1)
+
 my_obd_sensors = {}
 
-with open('Bolt.csv', 'r') as f:
+with open(sys.argv[1], 'r') as f:
 
     for num,line in enumerate(f):
 
