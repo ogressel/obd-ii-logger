@@ -4,7 +4,7 @@ A python script that reads Torque-Pro style sensor definitions from a CSV file a
 
 ## Description
 
-The script is intended to run on a Raspberry Pi and dump the sampled sensor values into an HDF5 data file, using individually labelled datasets for each PID time series.
+The script is intended to run on a Raspberry Pi and dump the sampled sensor values into an HDF5 data file, using individually labelled datasets for each PID time series. Currently, compound PIDs (i.e., using Torque-Pros' `[ ]` syntax) are not supported.
 
 ## Getting Started
 
@@ -15,9 +15,9 @@ The script is intended to run on a Raspberry Pi and dump the sampled sensor valu
 
 ### Installing
 
-* Download and configure the 'obd' Python module following these [instructions](https://python-obd.readthedocs.io/en/latest/#installation)
+* Download and configure the `obd` Python module following these [instructions](https://python-obd.readthedocs.io/en/latest/#installation)
 * Link your OBD-II dongle, e.g., following these [steps](https://fsjohnny.medium.com/connecting-your-bluetooth-obdii-adapter-or-other-serial-port-adapters-to-a-raspberry-pi-3-f2c9663dae73)
-* Simply download the 'obd-ii-logger.py' script
+* Simply download the `obd-ii-logger.py` script
 
 ### Executing program
 * simply run from the command line, providing the filename for the CSV sensor-definitions as an argument
